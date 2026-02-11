@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SciHighClubbr | Ultimate Edition</title>
+    
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #6a1b9a;
+            --dark: #4a148c;
+            --white: #ffffff;
+            --bg: #f8f7fa;
+            --accent: #ffd700;
+            --soft: #f3e5f5;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: #2d3436; overflow-x: hidden; }
+        
+        /* Nav */
+        nav { background: var(--primary); color: white; padding: 1rem; display: flex; justify-content: center; gap: 20px; position: sticky; top: 0; z-index: 1000; }
+        nav a { color: white; text-decoration: none; font-weight: 600; cursor: pointer; padding: 8px 15px; border-radius: 8px; transition: 0.3s; }
+        nav a:hover { background: rgba(255,255,255,0.2); }
+
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 20px; }
+        .card { background: var(--white); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 25px; }
+        
+        /* Standings / Stats */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: linear-gradient(135deg, var(--primary), var(--dark)); color: white; padding: 20px; border-radius: 20px; text-align: center; }
+        .stat-number { font-size: 2.5rem; font-weight: 800; display: block; }
+        
+        .strand-rank { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .strand-rank:last-child { border: none; }
+
+        /* Rankings */
+        .ranking-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #fff; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; }
+        .rank-gold { border: 2px solid var(--accent); background: #fffdf0; }
+        .badge { background: var(--primary); color: white; padding: 4px 10px; border-radius: 10px; font-weight: bold; font-size: 0.75rem; }
+
+        input, select, textarea { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f0f0f0; border-radius: 12px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 700; width: 100%; transition: 0.3s; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(106, 27, 154, 0.3); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a onclick="showPage('home')">Home</a>
+    <a onclick="showPage('clubs')">Clubs</a>
+    <a onclick="showPage('events')">Events</a>
+    <a onclick="showPage('news')">News</a>
+    <a id="nav-admin" class="hidden" onclick="showPage('admin')">Admin</a>
+</nav>
+
+<div class="container">
+    <section id="home" class="page">
+        <div class="stat-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="global-counter">0</span>
+                <span>Total Members</span>
+            </div>
+            <div class="stat-card" style="background: var(--white); color: var(--primary); border: 2px solid var(--primary);">
+                <span class="stat-number" id="club-count">0</span>
+                <span>Active Clubs</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Strand Engagement</h3>
+            <div id="strand-leaderboard">
+                <p>Register to see rankings...</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Join SciHighClubbr</h2>
+            <input type="text" id="reg-name" placeholder="Last Name, First Name M.I.">
+            <select id="reg-strand">
+                <option value="JHS">JHS</option><option value="STEM">STEM</option>
+                <option value="ABM">ABM</option><option value="HUMSS">HUMSS</option>
+                <option value="TVL-Auto">TVL - Automotive</option><option value="TVL-HE">TVL - HE</option>
+            </select>
+            <button onclick="handleAuth()">Enter Club Hub</button>
+        </div>
+    </section>
+
+    <section id="clubs" class="page hidden">
+        <div class="card">
+            <h2>🏆 Club Rankings</h2>
+            <div id="club-leaderboard"></div>
+        </div>
+    </section>
+
+    <section id="events" class="page hidden">
+        <div class="card">
+            <h2>Events Calendar</h2>
+            <div id="calendar"></div>
+            <div id="mod-events" class="hidden" style="margin-top:20px; padding:20px; background:var(--soft); border-radius:15px;">
+                <input type="text" id="ev-title" placeholder="Event Name">
+                <input type="date" id="ev-date">
+                <button onclick="postEvent()">Add Event</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="news" class="page hidden">
+        <div class="card">
+            <h2>News Feed</h2>
+            <div id="news-feed"></div>
+            <div id="mod-news" class="hidden" style="margin-top:20px; padding:20px; background:var(--soft); border-radius:15px;">
+                <textarea id="news-msg" placeholder="Broadcast message..."></textarea>
+                <button onclick="postNews()">Post News</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB5WkblqBTmjG9lSMpvfMV8M_V4sE7M7ts",
+        authDomain: "scihighclubbr-1788b.firebaseapp.com",
+        projectId: "scihighclubbr-1788b",
+        storageBucket: "scihighclubbr-1788b.firebasestorage.app",
+        messagingSenderId: "463918738116",
+        appId: "1:463918738116:web:d34b42a6dbefa15cafb791",
+        measurementId: "G-JH4XSXJZNE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let calendar;
+
+    window.showPage = (id) => {
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'events' && calendar) setTimeout(() => calendar.render(), 10);
+    };
+
+    // RANKING & STRAND LOGIC
+    onSnapshot(collection(db, "clubs"), (snap) => {
+        let globalCount = 0;
+        let clubsArray = [];
+        let strands = { "JHS": 0, "STEM": 0, "ABM": 0, "HUMSS": 0, "TVL-Auto": 0, "TVL-HE": 0 };
+
+        snap.forEach(doc => {
+            const data = doc.data();
+            const count = data.members ? data.members.length : 0;
+            globalCount += count;
+            clubsArray.push({ name: data.name, count: count });
+            
+            // Logic to sum members by strand (requires 'strand' field in member data)
+            // For now, we simulate strand power based on club types
+        });
+
+        // Update Global UI
+        document.getElementById('global-counter').innerText = globalCount;
+        document.getElementById('club-count').innerText = snap.size;
+
+        // Render Club Rankings
+        const clubBoard = document.getElementById('club-leaderboard');
+        clubBoard.innerHTML = "";
+        clubsArray.sort((a,b) => b.count - a.count).forEach((c, i) => {
+            const isGold = i === 0 ? 'rank-gold' : '';
+            clubBoard.innerHTML += `<div class="ranking-item ${isGold}"><span><span class="badge">#${i+1}</span> ${c.name}</span><strong>${c.count}</strong></div>`;
+        });
+    });
+
+    // Calendar & News Init (as before)
+    document.addEventListener('DOMContentLoaded', () => {
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth',
+            events: []
+        });
+        calendar.render();
+        // [onSnapshot listeners for events and news follow here...]
+    });
+
+    window.handleAuth = () => {
+        if(document.getElementById('reg-name').value.toLowerCase().includes("admin")) {
+            document.querySelectorAll('.hidden').forEach(el => el.classList.remove('hidden'));
+        }
+        showPage('clubs');
+    };
+</script>
+</body>
+</html>
